@@ -1,8 +1,8 @@
 {
-    "version": "0.0.3",
+    "version": "0.0.4",
     "manifest_version": 3,
-    "name": "CONET Platform",
-    "description": "This is CONET Platform extension",
+    "name": "CONET Platform Extension",
+    "description": "CONET Platform Extension",
     "action": {
         "default_title": "CONET Platform Extension",
         "default_icon":"assets/icons/CoNET.png",
@@ -11,5 +11,8 @@
     "permissions": [
         "tabs",
         "proxy"
-    ]
+    ],
+    "icons": {
+        "128": "assets/icons/CoNET-128.png"
+    }
 }

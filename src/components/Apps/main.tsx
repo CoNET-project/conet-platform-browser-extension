@@ -11,7 +11,7 @@ import React, {HTMLAttributes, useState, useEffect} from "react"
 import Button from '@mui/material/Button'
 import red from '@mui/material/colors/red'
 import SvgIcon from '@mui/material/SvgIcon'
-import {US, CN} from 'country-flag-icons/react/3x2'
+import {US, CN, JP, TW} from 'country-flag-icons/react/3x2'
 import { postPasscode, testLocalServer } from '../../API/index'
 import type {WorkerCommand} from '../../API/index'
 import useAppState from '../../store/appState/useAppState'
@@ -29,6 +29,17 @@ import CheckIcon from '@mui/icons-material/Check'
 import SaveIcon from '@mui/icons-material/Save'
 import { green } from '@mui/material/colors'
 import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet'
+import Icon from '@mdi/react'
+import { mdiOpenSourceInitiative } from '@mdi/js'
+import SpeedDial, { SpeedDialProps } from '@mui/material/SpeedDial'
+import {Locale} from "../Providers/localization/types"
+import SpeedDialAction from '@mui/material/SpeedDialAction'
+import { logger } from '../../logger'
+
+type action = {
+    icon: JSX.Element
+    name: Locale
+}
 
 const themeTopArea1 = createTheme ({
     typography: {
@@ -69,6 +80,13 @@ const ItemContainer = styled(Box)(({ theme }) => ({
     width: '100%'
 }))
 
+const actions: action[] = [
+    { icon: <SvgIcon component={JP} inheritViewBox/>, name: 'ja-JP' },
+    { icon: <SvgIcon component={CN} inheritViewBox/>, name: 'zh-CN' },
+    { icon: <SvgIcon component={TW} inheritViewBox/>, name: 'zh-TW' },
+    { icon: <SvgIcon component={US} inheritViewBox/>, name: 'en-US' }
+]
+
 const ItemTopArea1 = styled(Paper)(({ theme }) => ({
     padding: '1rem',
     borderRadius: 0,
@@ -87,12 +105,6 @@ const ItemTopArea2 = styled(Paper)(({ theme }) => ({
 
 
 const HeaderArea = (locale: any, setLocale: (k:any)=> void) => {
-    const flagClick = () => {
-        if (/us/i.test(locale)) {
-            return setLocale('zh-TW')
-        }
-        return setLocale('en-US')
-    }
     return (
         <ThemeProvider theme={themeTopArea1}>
              <Grid container spacing={0} >
@@ -100,12 +112,6 @@ const HeaderArea = (locale: any, setLocale: (k:any)=> void) => {
                     <ItemTopArea1 elevation={0}>
                         <HeadLogo src={logo} />
                         
-                        <LanguageFlag onClick={flagClick}>
-                            <Collapse in = {true} orientation="horizontal" timeout= {{appear: 500, exit: 1000}}>
-                                <SvgIcon component={/us/i.test(locale) ? CN : US} inheritViewBox/>
-                            </Collapse>
-                            
-                        </LanguageFlag>
                         <Typography variant="h5" sx={{ fontWeight: '900', textAlign:'center', color: grey[200]}}>
                             CONET
                         </Typography>
@@ -141,16 +147,16 @@ const downloadConet = ((event: React.SyntheticEvent<Element, Event>, newValue: a
 const DownloadArea = () => {
     return (
         <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
-         <BottomNavigation
-          showLabels
-          onChange = {downloadConet}
-          >
-          <BottomNavigationAction label="Windows" icon={<WindowSharpIcon />} />
-          <BottomNavigationAction label="Apple M" icon={<AppleIcon />} />
-          <BottomNavigationAction label="Apple" icon={<AppleIcon />} />
-        </BottomNavigation>
+            <BottomNavigation
+                showLabels
+                onChange = {downloadConet}
+            >
+                <BottomNavigationAction label="Windows" icon={<WindowSharpIcon />} />
+                <BottomNavigationAction label="Apple M" icon={<AppleIcon />} />
+                <BottomNavigationAction label="Apple" icon={<AppleIcon />} />
+            </BottomNavigation>
 
-    </Paper>
+        </Paper>
     )
     
 }
@@ -158,7 +164,7 @@ const DownloadArea = () => {
 const InputCom = styledCom.input`
     width: 100%
 `
-const showArea = (result: null|boolean) => {
+const ShowArea = (result: null|boolean) => {
     const intl = useIntl()
     return (
         <Grid container spacing={0} sx={{ padding: '1rem', textAlign: 'center'}}>
@@ -207,7 +213,7 @@ const configProxyRelease = {
     mode: "direct"
 }
 
-const main = () => {
+const Main = () => {
 
     const { locale, setLocale } = useAppState()
     const [passcodeInput, setPasscodeInput] = useState ('')
@@ -220,24 +226,22 @@ const main = () => {
     const fetchData = async () => {
         setTestLocalLoading(true)
         const test = await testLocalServer()
-        if (test=== null||test===false) {
-            chrome.proxy.settings.set(
-                {value: configProxyRelease, scope: 'regular'}
-            )
-        }
         setTestLocalLoading (false)
         setTestLocalHost (test)
+        if (test=== true) {
+            if (typeof chrome.proxy?.settings?.set === 'function') {
+                chrome.proxy.settings.set(
+                    {value: configProxyRelease, scope: 'regular'}
+                )
+            } else {
+                logger(`chrome.proxy.settings is undefine!`)
+            }
+                
+        }
+        
     }
     useEffect(() => {
-        chrome.proxy.settings.get(
-            {'incognito': false},
-            e => {
-                if (e.value.mode === 'fixed_servers') {
-                    setSuccess (true)
-                }
-            }
-        )
-        fetchData().catch(console.error)
+        fetchData()
     }, [])
     const timer = React.useRef<number>()
     const buttonSx = {
@@ -279,7 +283,11 @@ const main = () => {
     })
 
     const intl = useIntl()
+
     const handleButtonClick = () => {
+
+    }
+    const toggleProxy = () => {
         if (!process) {
             
             SetProcess(true)
@@ -296,7 +304,33 @@ const main = () => {
                 }
                 setSuccess(!success)
                 SetProcess(false)
-            }, 1000)
+            }, 500)
+        }
+    }
+
+    const showLocationIcon = () => {
+        switch(locale) {
+            default:
+            case 'en-US': {
+                return (
+                    <SvgIcon component={US} inheritViewBox/>
+                )
+            }
+            case 'ja-JP': {
+                return (
+                    <SvgIcon component={JP} inheritViewBox/>
+                )
+            }
+            case 'zh-CN': {
+                return (
+                    <SvgIcon component={CN} inheritViewBox/>
+                )
+            }
+            case 'zh-TW': {
+                return (
+                    <SvgIcon component={TW} inheritViewBox/>
+                )
+            }
         }
     }
 
@@ -304,7 +338,7 @@ const main = () => {
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', textAlign: 'center', justifyContent: 'center'}}>
                 {
-                    show && 
+                    show &&
                     <Box sx={{ m: 1, position: 'relative',  }}>
                         <Fab
                             aria-label="save"
@@ -332,14 +366,35 @@ const main = () => {
             </Box>
         )
     }
+
     return (
         
         <ThemeProvider theme={themeTopArea1} >
             
             <ItemContainer>
-                
+                <Box sx={{ position: 'absolute', mt: 0, top: '18rem', right: '1rem'}}>
+                    <SpeedDial
+                        ariaLabel="Language"
+                        sx={{ position: 'absolute', bottom: 16, right: 16 , backgroundColor: 'rgba(0,0,0,0)'}}
+                        icon={showLocationIcon()}
+                        direction='down'
+                        
+                    >
+                        {actions.map(action => (
+                            
+                            locale !== action.name &&
+                                <SpeedDialAction
+                                    sx={{backgroundColor: 'rgba(0,0,0,0)'}}
+                                    key={action.name}
+                                    icon={action.icon}
+                                    onClick={(n) => setLocale (action.name)}
+                                    tooltipTitle={action.name}/>
+                                    
+                        ))}
+                    </SpeedDial>
+                </Box>
                 {HeaderArea(locale, setLocale)}
-                {showArea(testLocalHost)}
+                {ShowArea(testLocalHost)}
                 {
                     testLocalHost === false &&
                         <Grid container spacing={0} sx={{ padding: '4rem 1rem 3rem 1rem', textAlign: 'center'}}>
@@ -372,15 +427,19 @@ const main = () => {
                                 }
                                 
                             </Grid>
-                         
+                            
                         </Grid>
                 }
                 {powerButton(testLocalHost)}
                 
-                { <DownloadArea/> }
+                {/* <Button onClick={fetchData}>
+                    fetchData
+                </Button> */}
+                            
+                <DownloadArea/>
             </ItemContainer>
         </ThemeProvider>
     )
 }
 
-export default main
+export default Main

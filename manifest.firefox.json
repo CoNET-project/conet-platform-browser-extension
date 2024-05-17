@@ -1,0 +1,15 @@
+{
+    "version": "0.0.3",
+    "manifest_version": 2,
+    "name": "CONET Platform",
+    "description": "CONET Platform extension",
+    "browser_action": {
+        "default_title": "CONET Platform Extension",
+        "default_icon":"assets/icons/CoNET.png",
+        "default_popup": "js/index.html"
+    },
+    "permissions": [
+        "tabs",
+        "proxy"
+    ]
+}
